@@ -6,6 +6,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -15,10 +16,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Vector;
 import java.util.Random;
-import java.io.File;
-import java.io.IOException;
+//import java.io.File;
+//import java.io.IOException;
 
-import javax.imageio.ImageIO;
+//import javax.imageio.ImageIO;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -123,18 +124,18 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		exitButton.addActionListener(this);
 		font = new Font("SansSerif", Font.BOLD, 20);	
 		
-		try{
-			image = ImageIO.read(new File("/resources/char.jpg"));
-			image1 = ImageIO.read(new File("/resources/shot.jpg"));
+		//try{
+			image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char.jpg"));
+			image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot.jpg"));
 			icon = new ImageIcon(image);
 			karakter= new Karakter(32,32,icon, this); //create label of size 32x32 will follow mouse
 			karakter.setVisible(false);			
 			add(karakter);					
-		}
-		catch(IOException e){
-			System.out.print("dosya yok!");
-			System.exit(ABORT);
-		}		
+		//}
+		//catch(IOException e){
+		//	System.out.print("dosya yok!");
+		//	System.exit(ABORT);
+		//}		
 	}
 	public Vector<Mob> getDusmanVektörü(){
 		return dusmanVektörü;
