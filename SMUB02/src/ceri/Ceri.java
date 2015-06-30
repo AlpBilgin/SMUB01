@@ -124,8 +124,8 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		font = new Font("SansSerif", Font.BOLD, 20);	
 		
 		try{
-			image = ImageIO.read(new File("/resources/char.bmp"));
-			image1 = ImageIO.read(new File("/resources/shot.bmp"));
+			image = ImageIO.read(new File("/resources/char.jpg"));
+			image1 = ImageIO.read(new File("/resources/shot.jpg"));
 			icon = new ImageIcon(image);
 			karakter= new Karakter(32,32,icon, this); //create label of size 32x32 will follow mouse
 			karakter.setVisible(false);			
