@@ -7,7 +7,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Toolkit;
-
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -15,11 +14,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-
 import java.util.Vector;
 import java.util.Random;
 
@@ -40,6 +34,18 @@ class PencereÝdareci extends WindowAdapter{
 	public void windowClosing(WindowEvent e){
 		System.exit(0);
 	}
+}
+
+class DoubleLockPipe {
+	public Vector<Mob> buffer;
+	public int lockA;
+	public int lockB;
+	DoubleLockPipe(){
+		buffer = new Vector<Mob>();
+		lockA=0;
+		lockB=0;
+	}
+	
 }
 
 
@@ -103,6 +109,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	private Vector<Mob> dusmanShotVektörü;	
 	private Image image;
 	private Image image1;
+	private Image image2;
 	private ImageIcon icon;
 	int targetX;
 	int targetY;
@@ -128,8 +135,9 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		font = new Font("SansSerif", Font.BOLD, 20);	
 		
 		//try{
-			image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char.jpg"));
+			image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char.png"));
 			image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot.jpg"));
+			image2 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char1.png"));
 			icon = new ImageIcon(image);
 			karakter= new Karakter(32,32,icon, this); //create label of size 32x32 will follow mouse
 			karakter.setVisible(false);			
@@ -193,7 +201,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	}
 	private void drawGameplay(Graphics g){
 		for(int i=0; i<dusmanVektörü.size(); i++){
-	    	g.drawImage(image,dusmanVektörü.elementAt(i).getX(),dusmanVektörü.elementAt(i).getY(),null);
+	    	g.drawImage(image2,dusmanVektörü.elementAt(i).getX(),dusmanVektörü.elementAt(i).getY(),null);
 		}
 	    for(int i=0; i<dusmanShotVektörü.size(); i++){
 	    	g.drawImage(image1,dusmanShotVektörü.elementAt(i).getX(),dusmanShotVektörü.elementAt(i).getY(),null);
@@ -233,6 +241,27 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	@Override
 	public void mouseDragged(MouseEvent e) {
 		
+
+		if(state ==0){//drawMenu is called by paint TODO
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+		}
+		else if(state==1){//drawGameplay is called by paint
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+			
+			if (targetX > karakter.getWidth()/2 + owner.getX() + owner.getInsets().left && targetX < (owner.getWidth()-karakter.getWidth()/2+ owner.getX()-owner.getInsets().right) ) {
+				karakter.setX(targetX - owner.getX() - owner.getInsets().left-(karakter.getWidth()/2)); 	
+			}
+			if (targetY > karakter.getHeight()/2 + owner.getY() + owner.getInsets().top && targetY < (owner.getHeight()-karakter.getHeight()/2+ owner.getY()-owner.getInsets().bottom)){
+				karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
+			}
+		}
+		else if(state==2){//drawEndMenu is  TODO called
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+		}
+		
 		
 	}
 
@@ -265,22 +294,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		
-		if(state ==0){//drawMenu is called by paint TODO
-			targetX=e.getLocationOnScreen().x;
-			targetY=e.getLocationOnScreen().y;	
-			
-			    	
-			    
-		}
-		else if(state==1){//drawGameplay is called by paint
-			targetX=e.getLocationOnScreen().x;
-			targetY=e.getLocationOnScreen().y;
-			if(e.getButton()== MouseEvent.BUTTON1) shotVektörü.add(new Mob(targetX-7,targetY-9)); // bunu parametrik yap
-		}
-		else if(state==2){//drawEndmenu is called TODO
-			targetX=e.getLocationOnScreen().x;
-			targetY=e.getLocationOnScreen().y;
-		}
+		
 		
 			
 			
@@ -294,7 +308,35 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		//  Auto-generated method stub
+		if(state ==0){//drawMenu is called by paint TODO
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;	
+			
+			    	
+			    
+		}
+		else if(state==1){//drawGameplay is called by paint
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+			if(e.getButton()== MouseEvent.BUTTON1){
+				owner.getPipe().lockB=1;
+				while(owner.getPipe().lockA==0){
+					try {
+						Thread.sleep(1);
+					} catch (InterruptedException e1) {
+						
+						System.out.print(e1.getMessage());
+					}				
+				}
+				shotVektörü.add(new Mob(targetX-7,targetY-9)); // bunu parametrik yap
+				owner.getPipe().lockA=0;
+				owner.getPipe().lockB=0;
+			}
+		}
+		else if(state==2){//drawEndmenu is called TODO
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+		}
 		
 	}
 	@Override
@@ -328,9 +370,9 @@ class Anapencere extends JFrame{
 	
 	private static final long serialVersionUID = 1L;
 	private Oyunalaný oyunalaný;
-	PipedInputStream pipeHead;
+	private DoubleLockPipe pipe;
 
-	public Anapencere(int x, int y, String isim, PipedInputStream pipeHead){
+	public Anapencere(int x, int y, String isim,DoubleLockPipe pipe){
 		setSize(x, y);
 		setTitle(isim);
 		setResizable(false);
@@ -340,7 +382,7 @@ class Anapencere extends JFrame{
 		oyunalaný.setFocusable(true);
 		oyunalaný.requestFocusInWindow();
 		
-		this.pipeHead=pipeHead;
+		this.pipe=pipe;
 		
 		Container contentPane = getContentPane();
 		contentPane.add(oyunalaný);
@@ -348,8 +390,8 @@ class Anapencere extends JFrame{
 		addMouseListener(oyunalaný);
 	}
 	
-	public PipedInputStream getPipeInput(){
-		return pipeHead;
+	public DoubleLockPipe getPipe(){
+		return pipe;
 	}
 	
 	public Oyunalaný getPanel(){
@@ -369,8 +411,9 @@ class BackThread implements Runnable {
 	private Vector<Mob> düsmanShotVektörü;
 	private Vector<Mob> shotVektörü;
 	private Karakter karakter;
+	private DoubleLockPipe pipe;
 	
-	public BackThread(Anapencere anapencere, int düsmansayisi, PipedOutputStream pipeTail){
+	public BackThread(Anapencere anapencere, int düsmansayisi, DoubleLockPipe pipe){
 		this.anapencere = anapencere;
 		random=new Random();
 		counter=0;
@@ -380,6 +423,7 @@ class BackThread implements Runnable {
 		düsmanShotVektörü=anapencere.getPanel().getDusmanShotVektörü();
 		shotVektörü=anapencere.getPanel().getShotVektörü();
 		this.karakter=anapencere.getPanel().getKarakter();
+		this.pipe=pipe;
 	}
 	
 	public void addShot(){}
@@ -450,40 +494,65 @@ class BackThread implements Runnable {
 				düsmanüret=false;
 			}
 			
-			
-			increment();
-			
+			if(pipe.lockB==1){
+				pipe.lockA=1;
+				try{
+					Thread.sleep(1);
+				}
+				catch(InterruptedException e2){
+					continue;				
+				}
+			}
+			else{
+				pipe.lockA=0;
+				increment();			
 		
-			counter++;
+				counter++;
 			
-			try{
-			Thread.sleep(20);
-			}
-			catch(InterruptedException e){
-				continue;				
-			}
+				try{
+					Thread.sleep(20);
+				}
+				catch(InterruptedException e){
+					continue;				
+				}
 			
-			anapencere.getPanel().repaint();
+				anapencere.getPanel().repaint();
+			}
 			
 		}
 		
 	}
 } 
 
+class FrontThread implements Runnable {
+	
+	private Anapencere anapencere;
+	
+
+	FrontThread(Anapencere anapencere){
+		this.anapencere = anapencere;
+		
+	}
+	
+	public void run() {
+		anapencere.setVisible(true);
+		
+	}
+	
+}
 
 public class Ceri {
 	static final int DÜSMANSAYISI =20;
 
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args){
 		
-		PipedOutputStream pipeTail = new PipedOutputStream();
-		PipedInputStream pipeHead = new PipedInputStream(pipeTail);
+		DoubleLockPipe pipe = new DoubleLockPipe();
 		
+		Anapencere anapencere = new Anapencere(500,700,"SMUB TEKMETOKAT!",pipe);
 		
-		Anapencere anapencere = new Anapencere(500,700,"SMUB TEKMETOKAT!", pipeHead);
-		anapencere.setVisible(true);		
-		
-		new Thread(new BackThread(anapencere,DÜSMANSAYISI,pipeTail)).start();		
+			
+		new Thread(new FrontThread(anapencere)).start();
+		new Thread(new BackThread(anapencere,DÜSMANSAYISI,pipe)).start();		
 		
 		return;
 
