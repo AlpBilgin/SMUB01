@@ -7,6 +7,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Toolkit;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -14,12 +15,14 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+
 import java.util.Vector;
 import java.util.Random;
-//import java.io.File;
-//import java.io.IOException;
 
-//import javax.imageio.ImageIO;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -89,7 +92,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	
 	
 	private static final long serialVersionUID = 1L;
-	private int state; // 0=menu, 1=gameplay, 2=endmenu
+	private int state; // 0=menu, 1=gameplay, 2=endmenu 3=pausemenu
 	private Karakter karakter;
 	private JButton startButton;
 	private JButton exitButton;
@@ -155,6 +158,20 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		karakter.setVisible(false);
 		startButton.setVisible(true);
 		exitButton.setVisible(true);
+		
+		//TODO +++ bunlara güvenli data boþaltma ekle
+		//for(int i=0; i<dusmanVektörü.size() ;i++) dusmanVektörü.remove(i);
+		//for(int i=0; i<dusmanShotVektörü.size() ;i++) dusmanShotVektörü.remove(i);
+		//for(int i=0; i<shotVektörü.size() ;i++) shotVektörü.remove(i);		
+		
+	}
+	
+	public void suspend(){ //pause menu
+		state=3; //pause menu
+		karakter.setVisible(false);
+		startButton.setVisible(true);
+		exitButton.setVisible(true);
+		
 	}
 	
 	public Anapencere getOwner(){		
@@ -238,7 +255,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 				karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
 			}
 		}
-		else if(state==2){//drawEndMenu is  TODOcalled
+		else if(state==2){//drawEndMenu is  TODO called
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
@@ -258,7 +275,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		else if(state==1){//drawGameplay is called by paint
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
-			shotVektörü.add(new Mob(targetX-7,targetY-9)); //TODO bunu parametrik yap
+			if(e.getButton()== MouseEvent.BUTTON1) shotVektörü.add(new Mob(targetX-7,targetY-9)); // bunu parametrik yap
 		}
 		else if(state==2){//drawEndmenu is called TODO
 			targetX=e.getLocationOnScreen().x;
@@ -277,17 +294,17 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		// TODO Auto-generated method stub
+		//  Auto-generated method stub
 		
 	}
 	@Override
 	public void mouseEntered(MouseEvent e) {
-		// TODO Auto-generated method stub
+		//  Auto-generated method stub
 		
 	}
 	@Override
 	public void mouseExited(MouseEvent e) {
-		// TODO Auto-generated method stub
+		//  Auto-generated method stub
 		
 	}
 	@Override
@@ -311,8 +328,9 @@ class Anapencere extends JFrame{
 	
 	private static final long serialVersionUID = 1L;
 	private Oyunalaný oyunalaný;
+	PipedInputStream pipeHead;
 
-	public Anapencere(int x, int y, String isim){
+	public Anapencere(int x, int y, String isim, PipedInputStream pipeHead){
 		setSize(x, y);
 		setTitle(isim);
 		setResizable(false);
@@ -322,10 +340,16 @@ class Anapencere extends JFrame{
 		oyunalaný.setFocusable(true);
 		oyunalaný.requestFocusInWindow();
 		
+		this.pipeHead=pipeHead;
+		
 		Container contentPane = getContentPane();
 		contentPane.add(oyunalaný);
 		addMouseMotionListener(oyunalaný);
 		addMouseListener(oyunalaný);
+	}
+	
+	public PipedInputStream getPipeInput(){
+		return pipeHead;
 	}
 	
 	public Oyunalaný getPanel(){
@@ -346,7 +370,7 @@ class BackThread implements Runnable {
 	private Vector<Mob> shotVektörü;
 	private Karakter karakter;
 	
-	public BackThread(Anapencere anapencere, int düsmansayisi){
+	public BackThread(Anapencere anapencere, int düsmansayisi, PipedOutputStream pipeTail){
 		this.anapencere = anapencere;
 		random=new Random();
 		counter=0;
@@ -362,19 +386,20 @@ class BackThread implements Runnable {
 
 	
 	public void increment(){
+		
 		for(int i=0; i<düsmanVektörü.size(); i++){
-			if(counter%2==0)düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+2);//TODO bunu parametrik yap
-			else düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+1);//TODO bunu parametrik yap
-			if(counter%150==0) düsmanShotVektörü.add(new Mob(düsmanVektörü.elementAt(i).getX()+12,düsmanVektörü.elementAt(i).getY()+12));//TODO bunu parametrik yap
+			if(counter%2==0)düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+3);// bunu parametrik yap
+			else düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+2);// bunu parametrik yap
+			if(counter%75==0) düsmanShotVektörü.add(new Mob(düsmanVektörü.elementAt(i).getX()+12,düsmanVektörü.elementAt(i).getY()+12));// bunu parametrik yap
 			
 			if(düsmanVektörü.elementAt(i).getY() > (anapencere.getY()+anapencere.getHeight())){
-				düsmanVektörü.elementAt(i).setY(-10);//TODO bunu parametrik yap
-				düsmanVektörü.elementAt(i).setX(random.nextInt(500));//TODO bunu parametrik yap
+				düsmanVektörü.elementAt(i).setY(-10);// bunu parametrik yap
+				düsmanVektörü.elementAt(i).setX(random.nextInt(500));// bunu parametrik yap
 			}		
 		}
 		
 		for(int k=0; k<this.düsmanShotVektörü.size(); k++){
-			düsmanShotVektörü.elementAt(k).setY(düsmanShotVektörü.elementAt(k).getY()+2);//TODO bunu parametrik yap
+			düsmanShotVektörü.elementAt(k).setY(düsmanShotVektörü.elementAt(k).getY()+4);// bunu parametrik yap
 			if(karakter.getX()-düsmanShotVektörü.elementAt(k).getX() < 6   
 					&& karakter.getY()-düsmanShotVektörü.elementAt(k).getY() < 6 
 					&& düsmanShotVektörü.elementAt(k).getX()-karakter.getX() < 31 
@@ -391,16 +416,16 @@ class BackThread implements Runnable {
 		}
 		
 		for(int j=0; j<shotVektörü.size(); j++){
-			shotVektörü.elementAt(j).setY(shotVektörü.elementAt(j).getY()-2); //TODO bunu parametrik yap
+			shotVektörü.elementAt(j).setY(shotVektörü.elementAt(j).getY()-4); // bunu parametrik yap
 			
 			boolean kill=false;
 			for(int i=0; i<düsmanVektörü.size(); i++){				
 				if(düsmanVektörü.elementAt(i).getX()-shotVektörü.elementAt(j).getX() < 6   
 						&& düsmanVektörü.elementAt(i).getY()-shotVektörü.elementAt(j).getY() < 6 
 						&& shotVektörü.elementAt(j).getX()-düsmanVektörü.elementAt(i).getX() < 31 
-						&& shotVektörü.elementAt(j).getY()-düsmanVektörü.elementAt(i).getY() < 31  ){ //TODO bunu parametrik yap
-					düsmanVektörü.elementAt(i).setY((-1*random.nextInt(50)));//TODO bunu parametrik yap
-					düsmanVektörü.elementAt(i).setX(random.nextInt(500));//TODO bunu parametrik yap
+						&& shotVektörü.elementAt(j).getY()-düsmanVektörü.elementAt(i).getY() < 31  ){ // bunu parametrik yap
+					düsmanVektörü.elementAt(i).setY((-1*random.nextInt(50)));// bunu parametrik yap
+					düsmanVektörü.elementAt(i).setX(random.nextInt(500));// bunu parametrik yap
 					kill = true;
 					break;
 				}				
@@ -409,27 +434,30 @@ class BackThread implements Runnable {
 		}
 		
 		for(int j=0; j<shotVektörü.size(); j++){
-			if(shotVektörü.size()>=(j+1) && shotVektörü.elementAt(j).getY() < 1 ) shotVektörü.remove(j) ;//TODO bunu parametrik yap
+			if(shotVektörü.size()>=(j+1) && shotVektörü.elementAt(j).getY() < 1 ) shotVektörü.remove(j) ;// bunu parametrik yap
 		}
+		
+		System.out.print("\n");
 	}
 	
 	public void run(){
 		while(true){
 			
 			if((counter%40) == 0 && düsmanüret){				
-				düsmanVektörü.add(new Mob(random.nextInt(500),-10));//TODO bunu parametrik yap
+				düsmanVektörü.add(new Mob(random.nextInt(500),-10));// bunu parametrik yap
 			}
 			if(düsmanüret && düsmanVektörü.size()>=düsmansayisi){
 				düsmanüret=false;
 			}
 			
-		
+			
 			increment();
+			
 		
 			counter++;
 			
 			try{
-			Thread.sleep(10);
+			Thread.sleep(20);
 			}
 			catch(InterruptedException e){
 				continue;				
@@ -446,13 +474,16 @@ class BackThread implements Runnable {
 public class Ceri {
 	static final int DÜSMANSAYISI =20;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException{
+		
+		PipedOutputStream pipeTail = new PipedOutputStream();
+		PipedInputStream pipeHead = new PipedInputStream(pipeTail);
 		
 		
-		Anapencere anapencere = new Anapencere(500,700,"SMUB TEKMETOKAT!");
+		Anapencere anapencere = new Anapencere(500,700,"SMUB TEKMETOKAT!", pipeHead);
 		anapencere.setVisible(true);		
 		
-		new Thread(new BackThread(anapencere,DÜSMANSAYISI)).start();		
+		new Thread(new BackThread(anapencere,DÜSMANSAYISI,pipeTail)).start();		
 		
 		return;
 
