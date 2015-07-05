@@ -3,11 +3,13 @@ package ceri;
 
 import java.awt.Color;
 import java.awt.Container;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,6 +20,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.image.BufferedImage;
 import java.util.Objects;
 import java.util.Vector;
 import java.util.Random;
@@ -128,6 +131,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	private Vector<Mob> dusmanVektörü;
 	private Vector<Mob> dusmanShotVektörü;
 	private int health;
+	private Image imageBG;
 	private Image image;
 	private Image image1;
 	private Image image2;
@@ -136,6 +140,9 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	private long score;
 	int targetX;
 	int targetY;
+	Cursor blankCursor;
+	int backgroundCounter;
+	
 
 	public Oyunalaný(Anapencere owner){
 		
@@ -144,7 +151,11 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		shotVektörü=new Vector<Mob>();
 		mode=0;
 		this.owner=owner;
-		setHealth(100);
+		setHealth(100);		
+		backgroundCounter=0;
+		
+		blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(
+				new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "blank cursor");
 		
 		startButton=new JButton("NEW GAME");
 		exitButton=new JButton("EXIT");
@@ -162,6 +173,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		
 		
 		//try{
+			imageBG = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/bg.png"));
 			image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char.png"));
 			image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot.png"));
 			image2 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char1.png"));
@@ -201,6 +213,10 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		karakter.setVisible(false);
 		startButton.setVisible(true);
 		exitButton.setVisible(true);
+		score=kill;		
+		
+	}
+	public void updateScore(long kill){		
 		score=kill;		
 		
 	}
@@ -268,6 +284,15 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		startButton.setVisible(false);
     	exitButton.setVisible(false);	    	
     	karakter.setVisible(true); //make char visible
+    	
+    	//following is background
+    	
+    	g.drawImage(imageBG,0,backgroundCounter,null);
+    	g.drawImage(imageBG,0,backgroundCounter-700,null);
+    	backgroundCounter++;
+    	backgroundCounter%=700;
+    	
+    	//following are mobs
 		
 		for(int i=0; i<dusmanVektörü.size(); i++){
 	    	g.drawImage(image2,dusmanVektörü.elementAt(i).getX(),dusmanVektörü.elementAt(i).getY(),null);
@@ -279,8 +304,11 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	    	g.drawImage(image1,shotVektörü.elementAt(i).getX()-owner.getInsets().left,shotVektörü.elementAt(i).getY()-owner.getInsets().top,null);
 	    }
 	    
+	    // following is health bar
 	    g.setFont(textFont);
 	    FontMetrics textMetrics = g.getFontMetrics(textFont);
+	    
+	    g.fillRect(90, 590, 320, 52);
 	    
 	    if(getHealth()>=0){
 			g.setColor(Color.RED);
@@ -476,9 +504,11 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		if(source==startButton){
 			if(getMode()==3){
 				this.owner.paused=true;
+				setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 				
 			}
 			setMode(1);
+			setCursor(blankCursor);
 		}
 		else if(source==exitButton){
 			System.exit(0);
@@ -493,16 +523,18 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		//  Auto-generated method stub
 		if(getMode()==1 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
 			setMode(3);
+			setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		}
 		else if(getMode()==3 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
 			setMode(1);
+			setCursor(blankCursor);
 		}
 		/**
 		 * 
 		 */
-		if(e.getKeyCode()==KeyEvent.VK_A){
+		/*if(e.getKeyCode()==KeyEvent.VK_A){
 			owner.moveshots= (!owner.moveshots);
-		}
+		}*/
 		
 		
 	}
@@ -690,6 +722,8 @@ class BackThread implements Runnable {
 			düsmanüret=true;			
 		}
 		
+		this.anapencere.getPanel().updateScore(kill);
+		
 		
 	}
 	
@@ -729,6 +763,15 @@ class BackThread implements Runnable {
 				catch(InterruptedException e){
 					continue;				
 				}				
+			}
+			else{
+				try{
+					Thread.sleep(20);
+				}
+				catch(InterruptedException e){
+					continue;				
+				}
+				
 			}
 			anapencere.getPanel().repaint();		
 		}
