@@ -47,9 +47,11 @@ class PencereÝdareci extends WindowAdapter{
 	}	
 	public void windowLostFocus(WindowEvent e){
 		oyunalaný.setMode(3);
+		oyunalaný.setDefaultCursor();
 	}
 	public void windowDeactivated(WindowEvent e){
 		oyunalaný.setMode(3);
+		oyunalaný.setDefaultCursor();
 	}
 }
 
@@ -127,21 +129,25 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	private Anapencere owner;
 	private Font headerFont;
 	private Font textFont;
+	private Font footerFont;
 	private Vector<Mob> shotVektörü;	
 	private Vector<Mob> dusmanVektörü;
 	private Vector<Mob> dusmanShotVektörü;
 	private int health;
+	private int energy;
 	private Image imageBG;
 	private Image image;
 	private Image image1;
 	private Image image2;
 	private Image image3;
+	private Image image4;
 	private ImageIcon icon;
 	private long score;
-	int targetX;
-	int targetY;
-	Cursor blankCursor;
-	int backgroundCounter;
+	private int targetX;
+	private int targetY;
+	private Cursor blankCursor;
+	private int backgroundCounter;
+	private boolean shield;
 	
 
 	public Oyunalaný(Anapencere owner){
@@ -151,8 +157,10 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		shotVektörü=new Vector<Mob>();
 		mode=0;
 		this.owner=owner;
-		setHealth(100);		
+		setHealth(100);	
+		setEnergy(300);
 		backgroundCounter=0;
+		setShield(false);
 		
 		blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(
 				new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "blank cursor");
@@ -170,6 +178,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		addKeyListener(this);
 		headerFont = new Font("SansSerif", Font.BOLD, 48);
 		textFont = new Font("SansSerif", Font.BOLD, 20);
+		footerFont = new Font("SansSerif", Font.PLAIN, 14);
 		
 		
 		//try{
@@ -178,8 +187,9 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 			image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot.png"));
 			image2 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char1.png"));
 			image3 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot1.png"));
+			image4 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shield.png"));
 			icon = new ImageIcon(image);
-			karakter= new Karakter(image.getWidth(null),image.getHeight(null),icon, this); //create label of size 32x32 will follow mouse
+			karakter= new Karakter(image.getWidth(null),image.getHeight(null),icon, this); //create label that will follow mouse
 			karakter.setVisible(false);			
 			add(karakter);					
 		//}
@@ -208,13 +218,32 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	public void setHealth(int health) {
 		this.health = health;
 	}
+	public boolean getShield() {
+		return shield;
+	}
+	public void setShield(boolean shield) {
+		this.shield = shield;
+	}
+	public int getEnergy() {
+		return energy;
+	}
+	public void setEnergy(int energy) {
+		this.energy = energy;
+	}
+	
+	public void setDefaultCursor(){
+		setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+	}
+	public void setTransparentCursor(){
+		setCursor(blankCursor);
+	}
 	public void lose(long kill){
 		mode=2;
 		karakter.setVisible(false);
 		startButton.setVisible(true);
 		exitButton.setVisible(true);
 		score=kill;
-		setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+		setDefaultCursor();
 		
 	}
 	public void updateScore(long kill){		
@@ -259,6 +288,8 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		    
 	    FontMetrics textMetrics = g.getFontMetrics(textFont);
 	    FontMetrics headerMetrics = g.getFontMetrics(headerFont);
+	    FontMetrics footerMetrics = g.getFontMetrics(footerFont);
+	    
 	    g.setFont(headerFont);    
 	    
 	    int cx=(owner.getWidth()/2)-(headerMetrics.stringWidth("SMUB THE GAME")/2); //get window center with width, subtract half of string length to set x anchor
@@ -269,17 +300,31 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	    
 	    String instructions = "Control the character with mouse.";
 	    int x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
-	    int y1=(owner.getHeight()/2)+150; //get window center with height, subtract arbitrary offset to set y anchor
+	    int y1=(owner.getHeight()/2)+100; //get window center with height, subtract arbitrary offset to set y anchor
 	    g.drawString(instructions, x1 , y1);
 	    
 	    instructions = "Left click to shoot.";
 	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
-	    y1+=50; //get window center with height, subtract arbitrary offset to set y anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    instructions = "Right click to Shield.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    instructions = "Shield energy recharges when shield is off.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
 	    g.drawString(instructions, x1 , y1);
 	    instructions = "Esc to pause.";
 	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
-	    y1+=50; //get window center with height, subtract arbitrary offset to set y anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
 	    g.drawString(instructions, x1 , y1);
+	    
+	    g.setFont(footerFont);
+	    String footer = "Coding by Alp Bilgin, Graphics by Ýbrahim Muhammet Çelik";
+	    x1=(owner.getWidth()/2)-(footerMetrics.stringWidth(footer)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1=owner.getHeight()-owner.getInsets().bottom-30; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(footer, x1 , y1);
 	}
 	private void drawGameplay(Graphics g){
 		startButton.setVisible(false);
@@ -305,22 +350,41 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	    	g.drawImage(image1,shotVektörü.elementAt(i).getX()-owner.getInsets().left,shotVektörü.elementAt(i).getY()-owner.getInsets().top,null);
 	    }
 	    
+	    if(getShield()){
+	    	g.drawImage(image4,targetX-owner.getX()-image4.getWidth(null)/2-owner.getInsets().left,targetY-owner.getY()-image4.getHeight(null)/2-owner.getInsets().top,null);
+	    	
+	    }
+	    
 	    // following is health bar
-	    g.setFont(textFont);
-	    FontMetrics textMetrics = g.getFontMetrics(textFont);
+	    g.setFont(footerFont);
+	    FontMetrics footerMetrics  = g.getFontMetrics(footerFont);
 	    
 	    g.fillRect(90, 590, 320, 52);
 	    
 	    if(getHealth()>=0){
 			g.setColor(Color.RED);
-			g.fillRect(100, 600, getHealth()*3, 32);
-			g.setColor(Color.BLACK);
+			g.fillRect(100, 600, getHealth()*3, 15);
+			
 		}
+	    if(getEnergy()>=0){
+			g.setColor(Color.YELLOW);
+			g.fillRect(100, 617, getEnergy(), 15);			
+		}
+	    if(!getShield() && getEnergy()<300)
+	    	setEnergy(getEnergy()+1);
 	    
-	    String instructions = "Health:";
-	    int x1=100; //get window center with width, subtract half of string length to set x anchor
-	    int y1=600+textMetrics.getHeight(); //get window center with height, subtract arbitrary offset to set y anchor
-	    g.drawString(instructions, x1 , y1);	    
+	    g.setColor(Color.BLACK);
+	    String label = "Health:";
+	    int x1=100; 
+	    int y1=593+footerMetrics.getHeight();
+	    g.drawString(label, x1 , y1);
+	    label = "Energy:";
+	    x1=100; 
+	    y1=610+footerMetrics.getHeight();
+	    g.drawString(label, x1 , y1);
+	    
+	   
+	    
 	    
 		
 		
@@ -454,6 +518,10 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	@Override
 	public void mousePressed(MouseEvent e) {
 		
+		if(e.getButton()==MouseEvent.BUTTON3){
+			setShield(true);
+		}
+		
 		
 	}
 	@Override
@@ -482,6 +550,9 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 				owner.getPipe().lockA=0;
 				owner.getPipe().lockB=0;
 			}
+			if(e.getButton()==MouseEvent.BUTTON3){
+				setShield(false);
+			}
 		}
 		else if(getMode()==2){//drawEndmenu is called 
 			targetX=e.getLocationOnScreen().x;
@@ -505,11 +576,11 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		if(source==startButton){
 			if(getMode()==3){
 				this.owner.paused=true;
-				setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+				setDefaultCursor();
 				
 			}
 			setMode(1);
-			setCursor(blankCursor);
+			setTransparentCursor();
 		}
 		else if(source==exitButton){
 			System.exit(0);
@@ -524,7 +595,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		//  Auto-generated method stub
 		if(getMode()==1 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
 			setMode(3);
-			setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+			setDefaultCursor();
 		}
 		else if(getMode()==3 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
 			setMode(1);
@@ -663,8 +734,10 @@ class BackThread implements Runnable {
 			if(karakter.getX()-düsmanShotVektörü.elementAt(k).getX() < 8
 					&& düsmanShotVektörü.elementAt(k).getX()-karakter.getX() < 14 
 					&& karakter.getY()-düsmanShotVektörü.elementAt(k).getY() < 8					
-					&& düsmanShotVektörü.elementAt(k).getY()-karakter.getY() <  32 ){				  
-						anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+					&& düsmanShotVektörü.elementAt(k).getY()-karakter.getY() <  32 ){
+				
+						if(!anapencere.getPanel().getShield())	anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+						
 						düsmanShotVektörü.remove(k);
 						break;
 						
@@ -707,7 +780,7 @@ class BackThread implements Runnable {
 					&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < 32  ){
 				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
 				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
-				anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+				if(!anapencere.getPanel().getShield()) anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
 				kill++;
 				
 			}
@@ -722,6 +795,14 @@ class BackThread implements Runnable {
 			anapencere.getPanel().lose(kill);//loss condition
 			düsmanüret=true;			
 		}
+		
+		if(anapencere.getPanel().getShield()){
+			anapencere.getPanel().setEnergy(anapencere.getPanel().getEnergy()-1);
+			if(anapencere.getPanel().getEnergy()<=0){
+				anapencere.getPanel().setShield(false);
+			}
+		}
+		
 		
 		this.anapencere.getPanel().updateScore(kill);
 		
@@ -774,7 +855,8 @@ class BackThread implements Runnable {
 				}
 				
 			}
-			anapencere.getPanel().repaint();		
+			anapencere.getPanel().repaint();
+			
 		}
 		
 	}
