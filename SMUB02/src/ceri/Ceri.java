@@ -3,6 +3,7 @@ package ceri;
 
 import java.awt.Color;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -41,7 +42,10 @@ class PencereÝdareci extends WindowAdapter{
 	public void windowClosing(WindowEvent e){
 		System.exit(0);
 	}	
-	public void windowIconified(WindowEvent e){
+	public void windowLostFocus(WindowEvent e){
+		oyunalaný.setMode(3);
+	}
+	public void windowDeactivated(WindowEvent e){
 		oyunalaný.setMode(3);
 	}
 }
@@ -278,18 +282,19 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	    g.setFont(textFont);
 	    FontMetrics textMetrics = g.getFontMetrics(textFont);
 	    
-	    	    
-	    String instructions = "Health:";
-	    int x1=100; //get window center with width, subtract half of string length to set x anchor
-	    int y1=600-textMetrics.getHeight(); //get window center with height, subtract arbitrary offset to set y anchor
-	    g.drawString(instructions, x1 , y1);	    
-	    
-		
-		if(getHealth()>=0){
+	    if(getHealth()>=0){
 			g.setColor(Color.RED);
 			g.fillRect(100, 600, getHealth()*3, 32);
 			g.setColor(Color.BLACK);
 		}
+	    
+	    String instructions = "Health:";
+	    int x1=100; //get window center with width, subtract half of string length to set x anchor
+	    int y1=600+textMetrics.getHeight(); //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);	    
+	    
+		
+		
 	}
 	private void drawEndMenu(Graphics g){
 		startButton.setVisible(true);
@@ -520,6 +525,11 @@ class Anapencere extends JFrame{
 
 	public Anapencere(int x, int y, String isim,DoubleLockPipe pipe){
 		setSize(x, y);
+		
+		Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
+	    
+	    this.setLocation((int) ((dimension.getWidth() - this.getWidth()) / 2), (int) ((dimension.getHeight() - this.getHeight()) / 2));
+		
 		setTitle(isim);
 		setResizable(false);		
 		oyunalaný = new Oyunalaný(this);
