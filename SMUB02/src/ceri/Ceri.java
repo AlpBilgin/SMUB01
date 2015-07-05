@@ -213,7 +213,8 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		karakter.setVisible(false);
 		startButton.setVisible(true);
 		exitButton.setVisible(true);
-		score=kill;		
+		score=kill;
+		setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 		
 	}
 	public void updateScore(long kill){		
