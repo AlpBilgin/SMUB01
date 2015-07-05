@@ -1,6 +1,7 @@
 package ceri;
 
 
+import java.awt.Color;
 import java.awt.Container;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -9,11 +10,14 @@ import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.Objects;
 import java.util.Vector;
 import java.util.Random;
 
@@ -27,12 +31,18 @@ import javax.swing.SwingConstants;
 
 
 
-class PencereÝdareci extends WindowAdapter{
-	public PencereÝdareci(){
-		super();
+
+class PencereÝdareci extends WindowAdapter{	
+	private Oyunalaný oyunalaný;
+	public PencereÝdareci(Oyunalaný oyunalaný){
+		super();		
+		this.oyunalaný=oyunalaný;
 	}
 	public void windowClosing(WindowEvent e){
 		System.exit(0);
+	}	
+	public void windowIconified(WindowEvent e){
+		oyunalaný.setMode(3);
 	}
 }
 
@@ -94,52 +104,66 @@ class Mob{
 
 
 
-class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, ActionListener  {
+class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, ActionListener, KeyListener  {
 	
 	
 	private static final long serialVersionUID = 1L;
-	private int state; // 0=menu, 1=gameplay, 2=endmenu 3=pausemenu
+	static final int BUTTONWIDHT =200;
+	static final int BUTTONHEIGHT =30;
+	static final int BUTTONSPACING =10;
+	static final int SHOTWIDTH =16;
+	static final int SHOTHEIGHT=32;
+	private int mode; 
 	private Karakter karakter;
 	private JButton startButton;
 	private JButton exitButton;
 	private Anapencere owner;
-	private Font font;
+	private Font headerFont;
+	private Font textFont;
 	private Vector<Mob> shotVektörü;	
 	private Vector<Mob> dusmanVektörü;
-	private Vector<Mob> dusmanShotVektörü;	
+	private Vector<Mob> dusmanShotVektörü;
+	private int health;
 	private Image image;
 	private Image image1;
 	private Image image2;
+	private Image image3;
 	private ImageIcon icon;
+	private long score;
 	int targetX;
 	int targetY;
 
-	public Oyunalaný(int x, int y, Anapencere owner){
+	public Oyunalaný(Anapencere owner){
 		
 		dusmanVektörü=new Vector<Mob>();
 		dusmanShotVektörü=new Vector<Mob>();
 		shotVektörü=new Vector<Mob>();
-		state=0;
+		mode=0;
 		this.owner=owner;
+		setHealth(100);
 		
-		startButton=new JButton("START");
+		startButton=new JButton("NEW GAME");
 		exitButton=new JButton("EXIT");
 		setLayout(null);
-		startButton.setBounds(owner.getWidth()/2-100, owner.getHeight()/2-15, 200, 30);
-		exitButton.setBounds(owner.getWidth()/2-100, owner.getHeight()/2-15+30+10, 200, 30); //15 is centering, 30 is button offset, 10 is spacing
+		startButton.setBounds(owner.getWidth()/2-BUTTONWIDHT/2, owner.getHeight()/2-BUTTONHEIGHT/2, BUTTONWIDHT, BUTTONHEIGHT);
+		exitButton.setBounds(owner.getWidth()/2-BUTTONWIDHT/2, owner.getHeight()/2-BUTTONHEIGHT/2+BUTTONHEIGHT+BUTTONSPACING, BUTTONWIDHT, BUTTONHEIGHT); //15 is centering, 30 is button offset, 10 is spacing
 	
 		add(startButton);
 		add(exitButton);
 		startButton.addActionListener(this);
 		exitButton.addActionListener(this);
-		font = new Font("SansSerif", Font.BOLD, 20);	
+		addKeyListener(this);
+		headerFont = new Font("SansSerif", Font.BOLD, 48);
+		textFont = new Font("SansSerif", Font.BOLD, 20);
+		
 		
 		//try{
 			image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char.png"));
-			image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot.jpg"));
+			image1 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot.png"));
 			image2 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/char1.png"));
+			image3 = Toolkit.getDefaultToolkit().getImage(getClass().getResource("resources/shot1.png"));
 			icon = new ImageIcon(image);
-			karakter= new Karakter(32,32,icon, this); //create label of size 32x32 will follow mouse
+			karakter= new Karakter(image.getWidth(null),image.getHeight(null),icon, this); //create label of size 32x32 will follow mouse
 			karakter.setVisible(false);			
 			add(karakter);					
 		//}
@@ -161,21 +185,24 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		return karakter;
 	}
 	
-	public void lose(){
-		state=2;
+	
+	public int getHealth() {
+		return health;
+	}
+	public void setHealth(int health) {
+		this.health = health;
+	}
+	public void lose(long kill){
+		mode=2;
 		karakter.setVisible(false);
 		startButton.setVisible(true);
 		exitButton.setVisible(true);
-		
-		//TODO +++ bunlara güvenli data boþaltma ekle
-		//for(int i=0; i<dusmanVektörü.size() ;i++) dusmanVektörü.remove(i);
-		//for(int i=0; i<dusmanShotVektörü.size() ;i++) dusmanShotVektörü.remove(i);
-		//for(int i=0; i<shotVektörü.size() ;i++) shotVektörü.remove(i);		
+		score=kill;		
 		
 	}
 	
 	public void suspend(){ //pause menu
-		state=3; //pause menu
+		mode=3; //pause menu
 		karakter.setVisible(false);
 		startButton.setVisible(true);
 		exitButton.setVisible(true);
@@ -186,39 +213,131 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		return owner;
 	}
 	
-	public void setState(int s) { state=s; }
-	public int getstate() {return state;}
+	/**
+	 * // 0=menu, 1=gameplay, 2=endmenu 3=pausemenu
+	 * @param s
+	 */
+	public void setMode(int s) {
+		mode=s; 
+	}
 	
-	private void drawMenu(Graphics g){		
-		    
-	    FontMetrics fontMetrics = g.getFontMetrics(font);	    
-	    g.setFont(font);    
-	    
-	    int cx=(owner.getWidth()/2)-(fontMetrics.stringWidth("TEKMETOKAT THE GAME")/2); //get window center with width, subtract half of string length to set x anchor
-	    int cy=(owner.getHeight()/2)-200; //get window center with height, subtract arbitrary offset to set y anchor
-	    g.drawString("TEKMETOKAT THE GAME",cx , cy);	   
+	/**
+	 * // 0=menu, 1=gameplay, 2=endmenu 3=pausemenu
+	 * @param s
+	 */
+	public int getMode() {
+		return mode;
+	}
+	
+	private void drawMenu(Graphics g){
 		
+		startButton.setVisible(true);
+    	exitButton.setVisible(true);	    	
+    	karakter.setVisible(false); //make char visible
+		
+		    
+	    FontMetrics textMetrics = g.getFontMetrics(textFont);
+	    FontMetrics headerMetrics = g.getFontMetrics(headerFont);
+	    g.setFont(headerFont);    
+	    
+	    int cx=(owner.getWidth()/2)-(headerMetrics.stringWidth("SMUB THE GAME")/2); //get window center with width, subtract half of string length to set x anchor
+	    int cy=(owner.getHeight()/2)-200; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString("SMUB THE GAME",cx , cy);
+	    
+	    g.setFont(textFont); 
+	    
+	    String instructions = "Control the character with mouse.";
+	    int x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    int y1=(owner.getHeight()/2)+150; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    
+	    instructions = "Left click to shoot.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=50; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    instructions = "Esc to pause.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=50; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
 	}
 	private void drawGameplay(Graphics g){
+		startButton.setVisible(false);
+    	exitButton.setVisible(false);	    	
+    	karakter.setVisible(true); //make char visible
+		
 		for(int i=0; i<dusmanVektörü.size(); i++){
 	    	g.drawImage(image2,dusmanVektörü.elementAt(i).getX(),dusmanVektörü.elementAt(i).getY(),null);
 		}
 	    for(int i=0; i<dusmanShotVektörü.size(); i++){
-	    	g.drawImage(image1,dusmanShotVektörü.elementAt(i).getX(),dusmanShotVektörü.elementAt(i).getY(),null);
+	    	g.drawImage(image3,dusmanShotVektörü.elementAt(i).getX(),dusmanShotVektörü.elementAt(i).getY(),null);
 	    }
 	    for(int i=0; i<shotVektörü.size(); i++){
-	    	g.drawImage(image1,shotVektörü.elementAt(i).getX(),shotVektörü.elementAt(i).getY(),null);
+	    	g.drawImage(image1,shotVektörü.elementAt(i).getX()-owner.getInsets().left,shotVektörü.elementAt(i).getY()-owner.getInsets().top,null);
 	    }
+	    
+	    g.setFont(textFont);
+	    FontMetrics textMetrics = g.getFontMetrics(textFont);
+	    
+	    	    
+	    String instructions = "Health:";
+	    int x1=100; //get window center with width, subtract half of string length to set x anchor
+	    int y1=600-textMetrics.getHeight(); //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);	    
+	    
 		
+		if(getHealth()>=0){
+			g.setColor(Color.RED);
+			g.fillRect(100, 600, getHealth()*3, 32);
+			g.setColor(Color.BLACK);
+		}
 	}
 	private void drawEndMenu(Graphics g){
+		startButton.setVisible(true);
+    	exitButton.setVisible(true);	    	
+    	karakter.setVisible(false); //make char visible
 		
-		FontMetrics fontMetrics = g.getFontMetrics(font);	    
-	    g.setFont(font);    
+		
+		FontMetrics fontMetrics = g.getFontMetrics(headerFont);	    
+	    g.setFont(headerFont);    
 	    
-	    int cx=(owner.getWidth()/2)-(fontMetrics.stringWidth("///o\\")/2); //get window center with width, subtract half of string length to set x anchor
+	    int cx=(owner.getWidth()/2)-(fontMetrics.stringWidth("YOU LOST")/2); //get window center with width, subtract half of string length to set x anchor
 	    int cy=(owner.getHeight()/2)-200; //get window center with height, subtract arbitrary offset to set y anchor
-	    g.drawString("///o\\",cx , cy);
+	    g.drawString("YOU LOST",cx , cy);
+	    
+	    int sx=(owner.getWidth()/2)-(fontMetrics.stringWidth("SCORE: "+Objects.toString(score))/2); //get window center with width, subtract half of string length to set x anchor
+	    int sy=(owner.getHeight()/2)-150; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString("SCORE: "+Objects.toString(score),sx , sy);
+	    
+		
+	}
+	/**
+	 * Call this function form an API function that is called by OS with Graphics g as parameter
+	 * @param g
+	 */
+	private void drawPauseMenu(Graphics g){
+		
+		startButton.setVisible(true);
+		exitButton.setVisible(true);		    	
+    	karakter.setVisible(false); //make char visible
+		
+		FontMetrics fontMetrics = g.getFontMetrics(headerFont);	    
+	    g.setFont(headerFont);    
+	    
+	    int cx=(owner.getWidth()/2)-(fontMetrics.stringWidth("PAUSED")/2); //get window center with width, subtract half of string length to set x anchor
+	    int cy=(owner.getHeight()/2)-200; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString("PAUSED",cx , cy);
+	    
+	    int sx=(owner.getWidth()/2)-(fontMetrics.stringWidth("SCORE: "+Objects.toString(score))/2); //get window center with width, subtract half of string length to set x anchor
+	    int sy=(owner.getHeight()/2)-150; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString("SCORE: "+Objects.toString(score),sx , sy);
+	    
+	    fontMetrics = g.getFontMetrics(textFont);	
+	    g.setFont(textFont);  
+	    
+	    int kx=(owner.getWidth()/2)-(fontMetrics.stringWidth("Press ESC to unpause.")/2); //get window center with width, subtract half of string length to set x anchor
+	    int ky=(owner.getHeight()/2)-100; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString("Press ESC to unpause.",kx , ky);
+	    
 		
 	}
 	
@@ -226,15 +345,18 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		
 		super.paintComponent(g);	
 		
-		if(state ==0){
+		if(getMode() ==0){
 			drawMenu(g);
 		}
-		else if(state==1){
+		else if(getMode()==1){
 			drawGameplay(g);
 		}
-		else if(state==2){
+		else if(getMode()==2){
 			drawEndMenu(g);
-		}	    
+		}
+		else if(getMode()==3){
+			drawPauseMenu(g);
+		}
 	}
 
 	
@@ -242,11 +364,11 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	public void mouseDragged(MouseEvent e) {
 		
 
-		if(state ==0){//drawMenu is called by paint TODO
+		if(getMode() ==0){//drawMenu is called by paint 
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
-		else if(state==1){//drawGameplay is called by paint
+		else if(getMode()==1){//drawGameplay is called by paint
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 			
@@ -257,7 +379,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 				karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
 			}
 		}
-		else if(state==2){//drawEndMenu is  TODO called
+		else if(getMode()==2){//drawEndMenu is   called
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
@@ -269,11 +391,11 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	public void mouseMoved(MouseEvent e) {
 				
 
-		if(state ==0){//drawMenu is called by paint TODO
+		if(getMode() ==0){//drawMenu is called by paint 
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
-		else if(state==1){//drawGameplay is called by paint
+		else if(getMode()==1){//drawGameplay is called by paint
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 			
@@ -284,7 +406,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 				karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
 			}
 		}
-		else if(state==2){//drawEndMenu is  TODO called
+		else if(getMode()==2){//drawEndMenu is   called
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
@@ -292,13 +414,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	}
 	
 	@Override
-	public void mouseClicked(MouseEvent e) {
-		
-		
-		
-			
-			
-		
+	public void mouseClicked(MouseEvent e) {		
 		
 	}
 	@Override
@@ -308,14 +424,14 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	}
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		if(state ==0){//drawMenu is called by paint TODO
+		if(getMode() ==0){//drawMenu is called by paint 
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;	
 			
 			    	
 			    
 		}
-		else if(state==1){//drawGameplay is called by paint
+		else if(getMode()==1){//drawGameplay is called by paint
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 			if(e.getButton()== MouseEvent.BUTTON1){
@@ -328,12 +444,12 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 						System.out.print(e1.getMessage());
 					}				
 				}
-				shotVektörü.add(new Mob(targetX-7,targetY-9)); // bunu parametrik yap
+				shotVektörü.add(new Mob(targetX-owner.getX()-(SHOTWIDTH/2) ,targetY-owner.getY()-SHOTHEIGHT));
 				owner.getPipe().lockA=0;
 				owner.getPipe().lockB=0;
 			}
 		}
-		else if(state==2){//drawEndmenu is called TODO
+		else if(getMode()==2){//drawEndmenu is called 
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
@@ -353,14 +469,41 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	public void actionPerformed(ActionEvent e) {
 		Object source = e.getSource();
 		if(source==startButton){
-	    	state=1;
-	    	startButton.setVisible(false);
-	    	exitButton.setVisible(false);	    	
-	    	karakter.setVisible(true); //make char visible			
+			if(getMode()==3){
+				this.owner.paused=true;
+				
+			}
+			setMode(1);
 		}
 		else if(source==exitButton){
 			System.exit(0);
 		}
+		
+	}
+	@Override
+	public void keyTyped(KeyEvent e) {	}
+	
+	@Override
+	public void keyPressed(KeyEvent e) {
+		//  Auto-generated method stub
+		if(getMode()==1 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
+			setMode(3);
+		}
+		else if(getMode()==3 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
+			setMode(1);
+		}
+		/**
+		 * 
+		 */
+		if(e.getKeyCode()==KeyEvent.VK_A){
+			owner.moveshots= (!owner.moveshots);
+		}
+		
+		
+	}
+	@Override
+	//
+	public void keyReleased(KeyEvent e) {
 		
 	}
 }
@@ -371,23 +514,28 @@ class Anapencere extends JFrame{
 	private static final long serialVersionUID = 1L;
 	private Oyunalaný oyunalaný;
 	private DoubleLockPipe pipe;
+	public boolean moveshots;
+	public boolean paused;
+	
 
 	public Anapencere(int x, int y, String isim,DoubleLockPipe pipe){
 		setSize(x, y);
 		setTitle(isim);
-		setResizable(false);
-		addWindowListener(new PencereÝdareci());
-		
-		oyunalaný = new Oyunalaný(50,50,this);
+		setResizable(false);		
+		oyunalaný = new Oyunalaný(this);
 		oyunalaný.setFocusable(true);
 		oyunalaný.requestFocusInWindow();
 		
+		addWindowListener(new PencereÝdareci(oyunalaný));
+		
 		this.pipe=pipe;
+		moveshots=true;
 		
 		Container contentPane = getContentPane();
 		contentPane.add(oyunalaný);
 		addMouseMotionListener(oyunalaný);
 		addMouseListener(oyunalaný);
+		
 	}
 	
 	public DoubleLockPipe getPipe(){
@@ -398,13 +546,13 @@ class Anapencere extends JFrame{
 		return oyunalaný;		
 	}
 	
+	
 }
 
 
 class BackThread implements Runnable {
 	private Anapencere anapencere;
-	private boolean düsmanüret;
-	private int düsmansayisi;
+	private boolean düsmanüret;	
 	private int counter;
 	private Random random;
 	private Vector<Mob> düsmanVektörü;
@@ -412,87 +560,144 @@ class BackThread implements Runnable {
 	private Vector<Mob> shotVektörü;
 	private Karakter karakter;
 	private DoubleLockPipe pipe;
+	private long kill;	
+	
+	static final int DÜSMANWIDTH =26;
+	static final int DÜSMANHEIGHT =32;
+	static final int SHOTWIDTH =16;
+	static final int SHOTHEIGHT=32;
 	
 	public BackThread(Anapencere anapencere, int düsmansayisi, DoubleLockPipe pipe){
 		this.anapencere = anapencere;
 		random=new Random();
 		counter=0;
-		düsmanüret=true;
-		this.düsmansayisi=düsmansayisi;
+		düsmanüret=false;
+		
 		düsmanVektörü=anapencere.getPanel().getDusmanVektörü();
 		düsmanShotVektörü=anapencere.getPanel().getDusmanShotVektörü();
 		shotVektörü=anapencere.getPanel().getShotVektörü();
 		this.karakter=anapencere.getPanel().getKarakter();
 		this.pipe=pipe;
+		kill=0;
+		for(int i = 0; i<düsmansayisi;i++) düsmanVektörü.add(new Mob(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2),-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2))); // populate and initialise enemy vector
 	}
 	
-	public void addShot(){}
+	public void reInitialiseEnemies(){
+		
+		for(int i=0; i<düsmanVektörü.size(); i++){
+			düsmanVektörü.elementAt(i).setY(-random.nextInt(500));
+		}
+		
+	}
+	
+	public void clearTable(){
+		
+		düsmanShotVektörü.clear();
+		shotVektörü.clear();
+		anapencere.getPanel().setHealth(100);
+		
+	}
 
 	
 	public void increment(){
 		
+		
+		// move enemies , generate shots when enemies are in window AND loop enemies when they leave window
 		for(int i=0; i<düsmanVektörü.size(); i++){
 			if(counter%2==0)düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+3);// bunu parametrik yap
 			else düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+2);// bunu parametrik yap
-			if(counter%75==0) düsmanShotVektörü.add(new Mob(düsmanVektörü.elementAt(i).getX()+12,düsmanVektörü.elementAt(i).getY()+12));// bunu parametrik yap
+			if(counter%75==0 && düsmanVektörü.elementAt(i).getY()>0) düsmanShotVektörü.add(new Mob(düsmanVektörü.elementAt(i).getX()+9,düsmanVektörü.elementAt(i).getY()+12));// 9 and 12 are the offsets taht center the shot inside the mob
 			
 			if(düsmanVektörü.elementAt(i).getY() > (anapencere.getY()+anapencere.getHeight())){
-				düsmanVektörü.elementAt(i).setY(-10);// bunu parametrik yap
-				düsmanVektörü.elementAt(i).setX(random.nextInt(500));// bunu parametrik yap
+				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
+				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));// bunu parametrik yap
 			}		
 		}
 		
+		//move enemy shots and collision detection between enemy shots and player
 		for(int k=0; k<this.düsmanShotVektörü.size(); k++){
-			düsmanShotVektörü.elementAt(k).setY(düsmanShotVektörü.elementAt(k).getY()+4);// bunu parametrik yap
-			if(karakter.getX()-düsmanShotVektörü.elementAt(k).getX() < 6   
-					&& karakter.getY()-düsmanShotVektörü.elementAt(k).getY() < 6 
-					&& düsmanShotVektörü.elementAt(k).getX()-karakter.getX() < 31 
-					&& düsmanShotVektörü.elementAt(k).getY()-karakter.getY() < 31  ){				  
-				anapencere.getPanel().lose();//loss condition
-				
-				
-			}
-				
+			if(anapencere.moveshots)düsmanShotVektörü.elementAt(k).setY(düsmanShotVektörü.elementAt(k).getY()+4);// bunu parametrik yap
+			if(karakter.getX()-düsmanShotVektörü.elementAt(k).getX() < 8
+					&& düsmanShotVektörü.elementAt(k).getX()-karakter.getX() < 14 
+					&& karakter.getY()-düsmanShotVektörü.elementAt(k).getY() < 8					
+					&& düsmanShotVektörü.elementAt(k).getY()-karakter.getY() <  32 ){				  
+						anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+						düsmanShotVektörü.remove(k);
+						break;
+						
+			}			
+		}
+		
+		//remove enemy shots when they leave window
+		for(int k=0; k<this.düsmanShotVektörü.size(); k++){
 			if(düsmanShotVektörü.elementAt(k).getY() > (anapencere.getY()+anapencere.getHeight())){
 				düsmanShotVektörü.remove(k);
 			}
-			
 		}
 		
+		// move player shots, detect collision between enemies and player shots(loop dead enemies and remove shot), remove player shots when they leave window
 		for(int j=0; j<shotVektörü.size(); j++){
 			shotVektörü.elementAt(j).setY(shotVektörü.elementAt(j).getY()-4); // bunu parametrik yap
 			
-			boolean kill=false;
+			boolean collision =false;
 			for(int i=0; i<düsmanVektörü.size(); i++){				
-				if(düsmanVektörü.elementAt(i).getX()-shotVektörü.elementAt(j).getX() < 6   
-						&& düsmanVektörü.elementAt(i).getY()-shotVektörü.elementAt(j).getY() < 6 
-						&& shotVektörü.elementAt(j).getX()-düsmanVektörü.elementAt(i).getX() < 31 
-						&& shotVektörü.elementAt(j).getY()-düsmanVektörü.elementAt(i).getY() < 31  ){ // bunu parametrik yap
-					düsmanVektörü.elementAt(i).setY((-1*random.nextInt(50)));// bunu parametrik yap
-					düsmanVektörü.elementAt(i).setX(random.nextInt(500));// bunu parametrik yap
-					kill = true;
+				if(düsmanVektörü.elementAt(i).getX()-shotVektörü.elementAt(j).getX() < 16   
+						&& düsmanVektörü.elementAt(i).getY()-shotVektörü.elementAt(j).getY() < 32 
+						&& shotVektörü.elementAt(j).getX()-düsmanVektörü.elementAt(i).getX() < 26 
+						&& shotVektörü.elementAt(j).getY()-düsmanVektörü.elementAt(i).getY() < 32  ){ // bunu parametrik yap
+					düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
+					düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));// bunu parametrik yap
+					kill++;
+					collision=true;
 					break;
-				}				
+				}
+				
 			}
-			if(kill)shotVektörü.remove(j);
+			if(collision) shotVektörü.remove(j);
+		}
+		
+		for(int i=0; i<düsmanVektörü.size(); i++){
+			
+			if(düsmanVektörü.elementAt(i).getX()-karakter.getX() < 14   
+					&& düsmanVektörü.elementAt(i).getY()-karakter.getY() < 32 
+					&& karakter.getX()-düsmanVektörü.elementAt(i).getX() < 26 
+					&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < 32  ){
+				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
+				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
+				anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+				kill++;
+				
+			}
+			
 		}
 		
 		for(int j=0; j<shotVektörü.size(); j++){
 			if(shotVektörü.size()>=(j+1) && shotVektörü.elementAt(j).getY() < 1 ) shotVektörü.remove(j) ;// bunu parametrik yap
 		}
 		
-		System.out.print("\n");
+		if(anapencere.getPanel().getHealth()<=0){
+			anapencere.getPanel().lose(kill);//loss condition
+			düsmanüret=true;			
+		}
+		
+		
 	}
 	
 	public void run(){
 		while(true){
 			
-			if((counter%40) == 0 && düsmanüret){				
-				düsmanVektörü.add(new Mob(random.nextInt(500),-10));// bunu parametrik yap
+			if(anapencere.paused && anapencere.getPanel().getMode() == 1){
+				düsmanüret=true;
+				anapencere.paused=false;
+				
 			}
-			if(düsmanüret && düsmanVektörü.size()>=düsmansayisi){
+			
+			if(düsmanüret){
+				clearTable();
+				reInitialiseEnemies();
 				düsmanüret=false;
-			}
+				kill=0;
+			}			
 			
 			if(pipe.lockB==1){
 				pipe.lockA=1;
@@ -503,22 +708,19 @@ class BackThread implements Runnable {
 					continue;				
 				}
 			}
-			else{
-				pipe.lockA=0;
-				increment();			
-		
-				counter++;
-			
+			//Only increment is if gameplay is active
+			else if (anapencere.getPanel().getMode()==1){		
+				pipe.lockA=0;					
+				increment();		
+				counter++;			
 				try{
 					Thread.sleep(20);
 				}
 				catch(InterruptedException e){
 					continue;				
-				}
-			
-				anapencere.getPanel().repaint();
+				}				
 			}
-			
+			anapencere.getPanel().repaint();		
 		}
 		
 	}
@@ -542,13 +744,13 @@ class FrontThread implements Runnable {
 }
 
 public class Ceri {
-	static final int DÜSMANSAYISI =20;
+	static final int DÜSMANSAYISI =20;	
 
 	public static void main(String[] args){
 		
 		DoubleLockPipe pipe = new DoubleLockPipe();
 		
-		Anapencere anapencere = new Anapencere(500,700,"SMUB TEKMETOKAT!",pipe);
+		Anapencere anapencere = new Anapencere(500,700,"SMUB",pipe);
 		
 			
 		new Thread(new FrontThread(anapencere)).start();
