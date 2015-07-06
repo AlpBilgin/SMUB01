@@ -511,6 +511,10 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
 		}
+		else if(getMode()==3){//drawEndMenu is   called
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+		}
 		
 		
 	}
@@ -537,6 +541,17 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		else if(getMode()==2){//drawEndMenu is   called
 			targetX=e.getLocationOnScreen().x;
 			targetY=e.getLocationOnScreen().y;
+		}
+		else if(getMode()==3){//drawEndMenu is   called
+			targetX=e.getLocationOnScreen().x;
+			targetY=e.getLocationOnScreen().y;
+			
+			if (targetX > karakter.getWidth()/2 + owner.getX() + owner.getInsets().left && targetX < (owner.getWidth()-karakter.getWidth()/2+ owner.getX()-owner.getInsets().right) ) {
+				karakter.setX(targetX - owner.getX() - owner.getInsets().left-(karakter.getWidth()/2)); 	
+			}
+			if (targetY > karakter.getHeight()/2 + owner.getY() + owner.getInsets().top && targetY < (owner.getHeight()-karakter.getHeight()/2+ owner.getY()-owner.getInsets().bottom)){
+				karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
+			}
 		}
 		
 	}
