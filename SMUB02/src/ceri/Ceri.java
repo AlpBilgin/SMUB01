@@ -34,8 +34,6 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 
-
-
 class PencereÝdareci extends WindowAdapter{	
 	private Oyunalaný oyunalaný;
 	public PencereÝdareci(Oyunalaný oyunalaný){
@@ -158,7 +156,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		mode=0;
 		this.owner=owner;
 		setHealth(100);	
-		setEnergy(300);
+		setEnergy(150);
 		backgroundCounter=0;
 		setShield(false);
 		
@@ -368,9 +366,9 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		}
 	    if(getEnergy()>=0){
 			g.setColor(Color.YELLOW);
-			g.fillRect(100, 617, getEnergy(), 15);			
+			g.fillRect(100, 617, getEnergy()*2, 15);			
 		}
-	    if(!getShield() && getEnergy()<300)
+	    if(!getShield() && getEnergy()<150)
 	    	setEnergy(getEnergy()+1);
 	    
 	    g.setColor(Color.BLACK);
@@ -418,7 +416,9 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		exitButton.setVisible(true);		    	
     	karakter.setVisible(false); //make char visible
 		
-		FontMetrics fontMetrics = g.getFontMetrics(headerFont);	    
+		FontMetrics fontMetrics = g.getFontMetrics(headerFont);
+		FontMetrics textMetrics = g.getFontMetrics(textFont);
+		FontMetrics footerMetrics = g.getFontMetrics(footerFont);
 	    g.setFont(headerFont);    
 	    
 	    int cx=(owner.getWidth()/2)-(fontMetrics.stringWidth("PAUSED")/2); //get window center with width, subtract half of string length to set x anchor
@@ -435,6 +435,36 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	    int kx=(owner.getWidth()/2)-(fontMetrics.stringWidth("Press ESC to unpause.")/2); //get window center with width, subtract half of string length to set x anchor
 	    int ky=(owner.getHeight()/2)-100; //get window center with height, subtract arbitrary offset to set y anchor
 	    g.drawString("Press ESC to unpause.",kx , ky);
+	    
+ g.setFont(textFont); 
+	    
+	    String instructions = "Control the character with mouse.";
+	    int x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    int y1=(owner.getHeight()/2)+100; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    
+	    instructions = "Left click to shoot.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    instructions = "Right click to Shield.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    instructions = "Shield energy recharges when shield is off.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    instructions = "Esc to pause.";
+	    x1=(owner.getWidth()/2)-(textMetrics.stringWidth(instructions)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1+=40; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(instructions, x1 , y1);
+	    
+	    g.setFont(footerFont);
+	    String footer = "Coding by Alp Bilgin, Graphics by Ýbrahim Muhammet Çelik";
+	    x1=(owner.getWidth()/2)-(footerMetrics.stringWidth(footer)/2); //get window center with width, subtract half of string length to set x anchor
+	    y1=owner.getHeight()-owner.getInsets().bottom-30; //get window center with height, subtract arbitrary offset to set y anchor
+	    g.drawString(footer, x1 , y1);
 	    
 		
 	}
@@ -771,7 +801,7 @@ class BackThread implements Runnable {
 			}
 			if(collision) shotVektörü.remove(j);
 		}
-		
+		if(!anapencere.getPanel().getShield()){
 		for(int i=0; i<düsmanVektörü.size(); i++){
 			
 			if(düsmanVektörü.elementAt(i).getX()-karakter.getX() < 14   
@@ -780,11 +810,12 @@ class BackThread implements Runnable {
 					&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < 32  ){
 				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
 				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
-				if(!anapencere.getPanel().getShield()) anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+				anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
 				kill++;
 				
 			}
 			
+		}
 		}
 		
 		for(int j=0; j<shotVektörü.size(); j++){
