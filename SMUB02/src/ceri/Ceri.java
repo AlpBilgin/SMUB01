@@ -1,6 +1,7 @@
 package ceri;
 
 
+import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Cursor;
@@ -10,6 +11,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Point;
+import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -146,6 +148,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	private Cursor blankCursor;
 	private int backgroundCounter;
 	private boolean shield;
+	private Robot robot;
 	
 
 	public Oyunalaný(Anapencere owner){
@@ -159,6 +162,13 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		setEnergy(150);
 		backgroundCounter=0;
 		setShield(false);
+		try {
+			robot=new Robot();
+		} catch (AWTException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			robot=null;
+		}
 		
 		blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(
 				new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB), new Point(0, 0), "blank cursor");
@@ -512,8 +522,10 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 			targetY=e.getLocationOnScreen().y;
 		}
 		else if(getMode()==3){//drawEndMenu is   called
-			targetX=e.getLocationOnScreen().x;
-			targetY=e.getLocationOnScreen().y;
+			if(robot==null){
+				targetX=e.getLocationOnScreen().x;
+				targetY=e.getLocationOnScreen().y;
+			}
 		}
 		
 		
@@ -543,14 +555,19 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 			targetY=e.getLocationOnScreen().y;
 		}
 		else if(getMode()==3){//drawEndMenu is   called
-			targetX=e.getLocationOnScreen().x;
-			targetY=e.getLocationOnScreen().y;
 			
-			if (targetX > karakter.getWidth()/2 + owner.getX() + owner.getInsets().left && targetX < (owner.getWidth()-karakter.getWidth()/2+ owner.getX()-owner.getInsets().right) ) {
-				karakter.setX(targetX - owner.getX() - owner.getInsets().left-(karakter.getWidth()/2)); 	
-			}
-			if (targetY > karakter.getHeight()/2 + owner.getY() + owner.getInsets().top && targetY < (owner.getHeight()-karakter.getHeight()/2+ owner.getY()-owner.getInsets().bottom)){
-				karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
+			if(robot==null){
+				targetX=e.getLocationOnScreen().x;
+				targetY=e.getLocationOnScreen().y;
+				
+				
+				
+				if (targetX > karakter.getWidth()/2 + owner.getX() + owner.getInsets().left && targetX < (owner.getWidth()-karakter.getWidth()/2+ owner.getX()-owner.getInsets().right) ) {
+					karakter.setX(targetX - owner.getX() - owner.getInsets().left-(karakter.getWidth()/2)); 	
+				}
+				if (targetY > karakter.getHeight()/2 + owner.getY() + owner.getInsets().top && targetY < (owner.getHeight()-karakter.getHeight()/2+ owner.getY()-owner.getInsets().bottom)){
+					karakter.setY(targetY - owner.getY() - owner.getInsets().top-(karakter.getHeight()/2));
+				}
 			}
 		}
 		
@@ -563,7 +580,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 	@Override
 	public void mousePressed(MouseEvent e) {
 		
-		if(e.getButton()==MouseEvent.BUTTON3){
+		if(e.getButton()==MouseEvent.BUTTON3 && getEnergy()>=149 && getMode()==1){
 			setShield(true);
 		}
 		
@@ -645,6 +662,13 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		else if(getMode()==3 && e.getKeyCode()==KeyEvent.VK_ESCAPE){
 			setMode(1);
 			setCursor(blankCursor);
+			if(robot!=null){
+				if (targetX > karakter.getWidth()/2 + owner.getX() + owner.getInsets().left && targetX < (owner.getWidth()-karakter.getWidth()/2+ owner.getX()-owner.getInsets().right)&& targetY > karakter.getHeight()/2 + owner.getY() + owner.getInsets().top && targetY < (owner.getHeight()-karakter.getHeight()/2+ owner.getY()-owner.getInsets().bottom)  ) {
+					robot.mouseMove(targetX, targetY); 	
+				}
+				
+				
+			}
 		}
 		/**
 		 * 
