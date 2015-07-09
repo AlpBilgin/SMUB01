@@ -165,7 +165,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 		try {
 			robot=new Robot();
 		} catch (AWTException e) {
-			// TODO Auto-generated catch block
+			//  Auto-generated catch block
 			e.printStackTrace();
 			robot=null;
 		}
@@ -671,7 +671,7 @@ class Oyunalaný extends JPanel implements MouseMotionListener , MouseListener, A
 			}
 		}
 		/**
-		 * 
+		 * this is purely for debugging. pressing A freezes shots so hitboxes and collision can be tested.
 		 */
 		/*if(e.getKeyCode()==KeyEvent.VK_A){
 			owner.moveshots= (!owner.moveshots);
@@ -732,24 +732,41 @@ class Anapencere extends JFrame{
 	
 }
 
-
+/**
+ * The worker thread for internal logic and draw requests
+ * 
+ * @author pc
+ *
+ */
 class BackThread implements Runnable {
 	private Anapencere anapencere;
-	private boolean düsmanüret;	
+	// this is a flag used to signal enemy coordinate initialisation
+	private boolean düsmanüret;
+	// this is a counter for internal periodicity
 	private int counter;
+	//random generator
 	private Random random;
+	//vector to contain NPC data
 	private Vector<Mob> düsmanVektörü;
+	//vectors for generated shots
 	private Vector<Mob> düsmanShotVektörü;
 	private Vector<Mob> shotVektörü;
+	//the object for PC
 	private Karakter karakter;
+	//mutex buffer for mouse event transmit safety	
 	private DoubleLockPipe pipe;
+	// kill counter (gets dumped into score attribute on the other side)
 	private long kill;	
-	
+	// hitbox dimensions
 	static final int DÜSMANWIDTH =26;
 	static final int DÜSMANHEIGHT =32;
 	static final int SHOTWIDTH =16;
 	static final int SHOTHEIGHT=32;
+	static final int KARAKTERWIDTH =14;
+	static final int KARAKTERHEIGHT =32;
+	static final int DUSMANSHOTSIZE=8;
 	
+	//constructor
 	public BackThread(Anapencere anapencere, int düsmansayisi, DoubleLockPipe pipe){
 		this.anapencere = anapencere;
 		random=new Random();
@@ -762,9 +779,11 @@ class BackThread implements Runnable {
 		this.karakter=anapencere.getPanel().getKarakter();
 		this.pipe=pipe;
 		kill=0;
+		// auto initialise enemies while the game is being loaded for fast internal transition.
 		for(int i = 0; i<düsmansayisi;i++) düsmanVektörü.add(new Mob(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2),-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2))); // populate and initialise enemy vector
 	}
 	
+	//It is pointless to destroy enemies in an infinite runner. So they re simply reshuffles t out of the screen.
 	public void reInitialiseEnemies(){
 		
 		for(int i=0; i<düsmanVektörü.size(); i++){
@@ -772,44 +791,48 @@ class BackThread implements Runnable {
 		}
 		
 	}
-	
+	//destroy all shots. Reset PC resources.
 	public void clearTable(){
 		
 		düsmanShotVektörü.clear();
 		shotVektörü.clear();
 		anapencere.getPanel().setHealth(100);
+		anapencere.getPanel().setEnergy(150);
 		
 	}
 
-	
+	//This is where the bulk of the internal logic happens
 	public void increment(){
 		
 		
 		// move enemies , generate shots when enemies are in window AND loop enemies when they leave window
 		for(int i=0; i<düsmanVektörü.size(); i++){
+			
+			//move enemies, the visible result is the average of the two incrementing integers
 			if(counter%2==0)düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+3);// bunu parametrik yap
 			else düsmanVektörü.elementAt(i).setY(düsmanVektörü.elementAt(i).getY()+2);// bunu parametrik yap
-			if(counter%75==0 && düsmanVektörü.elementAt(i).getY()>0) düsmanShotVektörü.add(new Mob(düsmanVektörü.elementAt(i).getX()+9,düsmanVektörü.elementAt(i).getY()+12));// 9 and 12 are the offsets taht center the shot inside the mob
-			
+			//every 75 iterations every enemy lower than window y coordinate generates a shot			
+			if(counter%75==0 && düsmanVektörü.elementAt(i).getY()>anapencere.getY()) düsmanShotVektörü.add(new Mob(düsmanVektörü.elementAt(i).getX()+9,düsmanVektörü.elementAt(i).getY()+12));// 9 and 12 are the offsets taht center the shot inside the mob
+			//enemy is recycled if it leaves window.
 			if(düsmanVektörü.elementAt(i).getY() > (anapencere.getY()+anapencere.getHeight())){
-				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
-				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));// bunu parametrik yap
+				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));
+				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
 			}		
 		}
 		
 		//move enemy shots and collision detection between enemy shots and player
 		for(int k=0; k<this.düsmanShotVektörü.size(); k++){
+			//move enemy shots
 			if(anapencere.moveshots)düsmanShotVektörü.elementAt(k).setY(düsmanShotVektörü.elementAt(k).getY()+4);// bunu parametrik yap
-			if(karakter.getX()-düsmanShotVektörü.elementAt(k).getX() < 8
-					&& düsmanShotVektörü.elementAt(k).getX()-karakter.getX() < 14 
-					&& karakter.getY()-düsmanShotVektörü.elementAt(k).getY() < 8					
-					&& düsmanShotVektörü.elementAt(k).getY()-karakter.getY() <  32 ){
-				
+			//collision detection
+			if(karakter.getX()-düsmanShotVektörü.elementAt(k).getX() < DUSMANSHOTSIZE
+					&& düsmanShotVektörü.elementAt(k).getX()-karakter.getX() < KARAKTERWIDTH 
+					&& karakter.getY()-düsmanShotVektörü.elementAt(k).getY() < DUSMANSHOTSIZE					
+					&& düsmanShotVektörü.elementAt(k).getY()-karakter.getY() <  KARAKTERHEIGHT ){
+						// if shield is not active, reduce health
 						if(!anapencere.getPanel().getShield())	anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
-						
-						düsmanShotVektörü.remove(k);
-						break;
-						
+						//remove shot regardles of damage
+						düsmanShotVektörü.remove(k);						
 			}			
 		}
 		
@@ -822,58 +845,93 @@ class BackThread implements Runnable {
 		
 		// move player shots, detect collision between enemies and player shots(loop dead enemies and remove shot), remove player shots when they leave window
 		for(int j=0; j<shotVektörü.size(); j++){
+			//move player shots
 			shotVektörü.elementAt(j).setY(shotVektörü.elementAt(j).getY()-4); // bunu parametrik yap
 			
 			boolean collision =false;
+			//check for collision
 			for(int i=0; i<düsmanVektörü.size(); i++){				
-				if(düsmanVektörü.elementAt(i).getX()-shotVektörü.elementAt(j).getX() < 16   
-						&& düsmanVektörü.elementAt(i).getY()-shotVektörü.elementAt(j).getY() < 32 
-						&& shotVektörü.elementAt(j).getX()-düsmanVektörü.elementAt(i).getX() < 26 
-						&& shotVektörü.elementAt(j).getY()-düsmanVektörü.elementAt(i).getY() < 32  ){ // bunu parametrik yap
-					düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
-					düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));// bunu parametrik yap
+				if(düsmanVektörü.elementAt(i).getX()-shotVektörü.elementAt(j).getX() < SHOTWIDTH   
+						&& düsmanVektörü.elementAt(i).getY()-shotVektörü.elementAt(j).getY() < SHOTHEIGHT 
+						&& shotVektörü.elementAt(j).getX()-düsmanVektörü.elementAt(i).getX() < DÜSMANWIDTH 
+						&& shotVektörü.elementAt(j).getY()-düsmanVektörü.elementAt(i).getY() < DÜSMANHEIGHT  ){ 
+					//recycle shot enemy
+					düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));
+					düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
+					//increment kill counter
 					kill++;
+					//set collision true
 					collision=true;
+					//break inner loop
 					break;
 				}
 				
 			}
+			//if inner loop detects a collision remove shot in outer loop
 			if(collision) shotVektörü.remove(j);
 		}
+		
+		//if shield is not active, check for player/enemy collision
 		if(!anapencere.getPanel().getShield()){
-		for(int i=0; i<düsmanVektörü.size(); i++){
+			for(int i=0; i<düsmanVektörü.size(); i++){
 			
-			if(düsmanVektörü.elementAt(i).getX()-karakter.getX() < 14   
-					&& düsmanVektörü.elementAt(i).getY()-karakter.getY() < 32 
-					&& karakter.getX()-düsmanVektörü.elementAt(i).getX() < 26 
-					&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < 32  ){
-				düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
-				düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
-				anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
-				kill++;
+				if(düsmanVektörü.elementAt(i).getX()-karakter.getX() < KARAKTERWIDTH   
+						&& düsmanVektörü.elementAt(i).getY()-karakter.getY() < KARAKTERHEIGHT 
+						&& karakter.getX()-düsmanVektörü.elementAt(i).getX() < DÜSMANWIDTH 
+						&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < DÜSMANHEIGHT  ){
+					//if collision recycle enemy
+					düsmanVektörü.elementAt(i).setY(-random.nextInt(this.anapencere.getHeight())-(DÜSMANHEIGHT/2));// bunu parametrik yap
+					düsmanVektörü.elementAt(i).setX(random.nextInt(this.anapencere.getWidth()-(2*DÜSMANWIDTH))+(DÜSMANWIDTH/2));
+					//reduce health
+					anapencere.getPanel().setHealth(anapencere.getPanel().getHealth()-10);
+					//increase kill count
+					kill++;				
+				}			
+			}
+		}
+		//if shield is active, displace enemies to either left or right depending on angle of contact
+		else{	
+			for(int i=0; i<düsmanVektörü.size(); i++){
+				if(karakter.getX()-düsmanVektörü.elementAt(i).getX() < DÜSMANWIDTH   
+						&& düsmanVektörü.elementAt(i).getY()-karakter.getY() < KARAKTERHEIGHT 
+						&& karakter.getX()-düsmanVektörü.elementAt(i).getX() >= (DÜSMANWIDTH-KARAKTERWIDTH)/2 
+						&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < DÜSMANHEIGHT  ){
+					düsmanVektörü.elementAt(i).setX(düsmanVektörü.elementAt(i).getX()-2);
+				}
+				if(düsmanVektörü.elementAt(i).getX()-karakter.getX() < KARAKTERWIDTH   
+						&& düsmanVektörü.elementAt(i).getY()-karakter.getY() < KARAKTERHEIGHT 
+						&& karakter.getX()-düsmanVektörü.elementAt(i).getX() < (DÜSMANWIDTH-KARAKTERWIDTH)/2  
+						&& karakter.getY()-düsmanVektörü.elementAt(i).getY() < DÜSMANHEIGHT  ){
+					düsmanVektörü.elementAt(i).setX(düsmanVektörü.elementAt(i).getX()+2);
+				}
 				
 			}
 			
 		}
-		}
-		
+		//remove player shots if they move beyond window
 		for(int j=0; j<shotVektörü.size(); j++){
-			if(shotVektörü.size()>=(j+1) && shotVektörü.elementAt(j).getY() < 1 ) shotVektörü.remove(j) ;// bunu parametrik yap
+			if(/*shotVektörü.size()>=(j+1) &&*/ shotVektörü.elementAt(j).getY() < anapencere.getY() )
+				shotVektörü.remove(j) ;
 		}
 		
+		//if health is less or equal to 0, end game
 		if(anapencere.getPanel().getHealth()<=0){
+			//function to change window state
 			anapencere.getPanel().lose(kill);//loss condition
+			//flag to change internal logic state
 			düsmanüret=true;			
 		}
 		
+		//drain shield energy while shield is active
 		if(anapencere.getPanel().getShield()){
 			anapencere.getPanel().setEnergy(anapencere.getPanel().getEnergy()-1);
+			//if shield energy is empty, turn off shield
 			if(anapencere.getPanel().getEnergy()<=0){
 				anapencere.getPanel().setShield(false);
 			}
 		}
 		
-		
+		//periodically update score
 		this.anapencere.getPanel().updateScore(kill);
 		
 		
@@ -882,12 +940,13 @@ class BackThread implements Runnable {
 	public void run(){
 		while(true){
 			
+			//reset internal logic if game is restarted while paused
 			if(anapencere.paused && anapencere.getPanel().getMode() == 1){
 				düsmanüret=true;
-				anapencere.paused=false;
-				
+				anapencere.paused=false;				
 			}
 			
+			//if internal reset flag is set, go ahead and do it. TODO
 			if(düsmanüret){
 				clearTable();
 				reInitialiseEnemies();
@@ -950,16 +1009,21 @@ class FrontThread implements Runnable {
 }
 
 public class Ceri {
+	
 	static final int DÜSMANSAYISI =20;	
 
 	public static void main(String[] args){
 		
+		//this is a custom mutex buffer. See class declaration
 		DoubleLockPipe pipe = new DoubleLockPipe();
 		
+		//custom mutex buffer is an attribute of the main window thread functions will access this internal buffer of window object with protocol
 		Anapencere anapencere = new Anapencere(500,700,"SMUB",pipe);
 		
-			
+		//start a new thread. See FrontThread.run() to see what is actually does	
 		new Thread(new FrontThread(anapencere)).start();
+		
+		//start a new thread. See BackThread.run() to see what is actually does
 		new Thread(new BackThread(anapencere,DÜSMANSAYISI,pipe)).start();		
 		
 		return;
